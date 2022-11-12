@@ -1,0 +1,5 @@
+# ignore the following files
+__pycache__/*
+cred.py
+*.sql
+*.db

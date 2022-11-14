@@ -65,6 +65,15 @@ def getTimeDiff(row1, row2):
     return date1-date2
 
 # get the remaining time in the battery from a row. We will use minutes.
+# the battery reports time remaining in either:
+# hours
+# minutes
+# %
+# if reported in minutes - keep
+# if reported in hours, convert to minutes by multiplying by 60
+# if reported in percent (%), convert to minutes (assume 9 hours). Note that
+# when the time is reported as a percent, it is always 100% (othewise it's reported)
+# as hours or minutes.
 def getTimeRemaining(row):
     time_str = row['time_remaining']
     time_type = ''
@@ -81,8 +90,9 @@ def getTimeRemaining(row):
     if time_type == 'hours':
         time_float *= 60
     elif time_type == 'percent':
-        time_float = 6 * 60
+        time_float = 9 * 60
 
+    # round to remove the decimal place
     return round(time_float)
 
 # get the remaining battery percentage from a row
@@ -92,17 +102,24 @@ def getPercentRemaining(row):
     return float(percent_str)
 
 # get the battery time loss between two rows in the table.
+# row1 is the most recent row, row2 is the older row. Therefore if the
+# battery is losing power, row1 will have less time (lower value) than row2
 def getBatteryLoss_Time(row1, row2):
     remaining_time1 = getTimeRemaining(row1)
     remaining_time2 = getTimeRemaining(row2)
-    return remaining_time2 - remaining_time1
+    return remaining_time1 - remaining_time2
 
 # get the percentage battery loss between two rows in the table
+# as with getBatteryLoss_Time() row1 is the most recent row, row2 is the older
+# row. So if the battery is losing power, row1 will have a lower battery
+# percentage left.
 def getBatteryLoss_Percent(row1, row2):
     remaining_percent1 = getPercentRemaining(row1)
     remaining_percent2 = getPercentRemaining(row2)
-    return remaining_percent2 - remaining_percent1
+    return remaining_percent1 - remaining_percent2
 
+# create a list of the data to send via SMS. 
+# this is a list of dicts.
 sms_data = []
 for row in range(num_rows-1):
     sms_data.append({
@@ -114,6 +131,8 @@ for row in range(num_rows-1):
         'lost_percent': getBatteryLoss_Percent(rows[row], rows[row+1])
     })
 
+# function to create the text message. Take care not to use any characters that will
+# be discarded by SMS (such as quotes)
 def createMessage():
     message_items = 2
     msg = ''
